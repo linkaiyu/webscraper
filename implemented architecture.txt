@@ -1,0 +1,10 @@
+1. A python program that controls playwright to do operations such as URL navigation, pagination. it exposes rest API via http daemon. The daemon program has mechanism to directly control playwright instance and inject js script to be executed. Copilot can request it to provide the DOM so that it can understand the page structure in order to generate js script or use Playwright direct control.
+2. A python program that service as the client to http daemon service. It can be invoked by copilot via parameters
+3. A copilot agent or a slash command, that controls the general rules. 
+4. A skill for scraper_metadata capturing. It provides instructions and specifies http daemon tool and client usage. It also provides structure for the tool to generate following data:
+    a. url.json: records the urls of the navigation that results in following user's instructions
+    b. pagination.json: records the pagination technique of the page
+    c. data_dictionary.csv: the scraped page data schema
+    d. data_dictionary_sample that contains the data scraped from the product detail page as sample
+    e. the playback.py file that records the sequence of actions based on user prompts, can be used to reproduce the meta data and let user verify or modify the sequence of actions until requirements are met. the daemon program produces the playback.py program based on its in memory action log.
+  5. A skill scraper_generator for web scraper code generation by using the meta data captured by the scraper_metadata skill
