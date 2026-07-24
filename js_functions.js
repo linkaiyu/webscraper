@@ -1,5 +1,16 @@
 // from DeepSeek, support get_nearby_text('marker', 'after/..' | 'before/..')
 // 'contains' | 'startswith' | 'endswith'
+/*
+PRICE = get_nearby_text('CONTEXT', 'before/..') -> 'PRICE\n\n$5/M tokens'
+CONTEXT = get_nearby_text('PRICE', 'after/..')  -> 'CONTEXT\n\n4K'
+
+Released = get_nearby_text('RELEASED', 'after') ->'Jul 23, 2026'
+
+Providers = get_nearby_text('Uptime', 'after/..') ->'Azure\n\t$5.00\t$8.00\t$108.00\t0.01s\t37 tps\t\n100.00%'
+Weighted_Avg_Input_Price = get_nearby_text('Weighted Avg Input Price', 'after') ->'$6.74'
+Weighted_Avg_Output_Price = get_nearby_text('Weighted Avg Output Price', 'after') ->'$108.00'
+*/
+
 
 function get_nearby_text(marker, position = 'after', matchMode = 'exact') {
     if (typeof marker !== 'string' || marker === '') return '';
