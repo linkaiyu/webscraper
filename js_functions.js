@@ -501,3 +501,79 @@ function buildStableSelector(element) {
         cssWithText: `*:contains("${fullText}")` // not standard CSS, but works with some libraries
     };
 }
+
+// Get text from a row below the marker text
+// usage:
+const latencyValue = get_text_below_column('Latency');
+
+
+function get_text_below_column(headerText, matchMode = 'contains') {
+    if (typeof headerText !== 'string' || headerText === '') return '';
+
+    matchMode = String(matchMode || 'contains').toLowerCase();
+
+    // Find all table header cells (th) that match the text
+    const allHeaders = document.querySelectorAll('th');
+    let targetHeader = null;
+    let columnIndex = -1;
+    let table = null;
+
+    for (let th of allHeaders) {
+        const txt = th.innerText.trim();
+        let isMatch = false;
+        const normalizedTxt = txt.toLowerCase();
+        const normalizedMarker = headerText.toLowerCase();
+        switch (matchMode) {
+            case 'exact': isMatch = normalizedTxt === normalizedMarker; break;
+            case 'contains': isMatch = normalizedTxt.includes(normalizedMarker); break;
+            case 'startswith': isMatch = normalizedTxt.startsWith(normalizedMarker); break;
+            case 'endswith': isMatch = normalizedTxt.endsWith(normalizedMarker); break;
+            case 'regex':
+                try { isMatch = new RegExp(headerText, 'i').test(normalizedTxt); } catch (e) {}
+                break;
+            default: isMatch = normalizedTxt.includes(normalizedMarker);
+        }
+        if (isMatch) {
+            targetHeader = th;
+            table = th.closest('table');
+            if (!table) continue;
+            // Find column index: count th siblings before this one
+            let siblings = table.querySelectorAll('tr:first-child th, tr:first-child td');
+            // Better: count cells in the same row before this header
+            const row = th.closest('tr');
+            const cells = row.querySelectorAll('th, td');
+            for (let i = 0; i < cells.length; i++) {
+                if (cells[i] === th) {
+                    columnIndex = i;
+                    break;
+                }
+            }
+            if (columnIndex !== -1) break;
+        }
+    }
+
+    if (!table || columnIndex === -1) return '';
+
+    // Find the first data row (skip header rows)
+    // We'll try to find the first row that is not a header row (i.e., contains td)
+    const rows = table.querySelectorAll('tr');
+    let dataRow = null;
+    for (let row of rows) {
+        // Skip if it contains only th
+        const tds = row.querySelectorAll('td');
+        if (tds.length > 0) {
+            dataRow = row;
+            break;
+        }
+    }
+
+    if (!dataRow) return '';
+
+    // Get the cell at the same column index
+    const cells = dataRow.querySelectorAll('td');
+    if (columnIndex < cells.length) {
+        return cells[columnIndex].innerText.trim();
+    }
+
+    return '';
+}
