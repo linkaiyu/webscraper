@@ -132,7 +132,7 @@ function get_nearby_text(marker, position = 'after', matchMode = 'exact') {
     return '';
 }
 
-// from Deepseek, works well, returns the start marker and end marker node and their relative path, e.g. identify_node('Throughput', 'Latency', 3);
+// works well, returns the start marker and end marker node and their relative path, e.g. identify_node('Throughput', 'Latency', 3);
 function identify_node(startMarker, endMarker, search_level = 3) {
 
     //------------------------------------------------------------
@@ -398,4 +398,91 @@ function identify_node(startMarker, endMarker, search_level = 3) {
         }
     };
 
+}
+
+// find the selector string based on marker text
+function generate_selector_for_text(marker, matchMode = 'exact') {
+    if (typeof marker !== 'string' || marker === '') return null;
+
+    matchMode = String(matchMode || 'exact').toLowerCase();
+
+    const body = document.body;
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_ELEMENT);
+    let node;
+
+    function isMatch(text) {
+        if (!text) return false;
+        const normalizedText = text.toLowerCase().trim();
+        const normalizedMarker = marker.toLowerCase().trim();
+
+        switch (matchMode) {
+            case 'exact': return normalizedText === normalizedMarker;
+            case 'contains': return normalizedText.includes(normalizedMarker);
+            case 'startswith': return normalizedText.startsWith(normalizedMarker);
+            case 'endswith': return normalizedText.endsWith(normalizedMarker);
+            case 'regex':
+                try { return new RegExp(marker, 'i').test(normalizedText); }
+                catch (e) { return false; }
+            default: return normalizedText.includes(normalizedMarker);
+        }
+    }
+
+    while ((node = walker.nextNode())) {
+        const txt = (node.innerText || '').trim();
+        if (!txt) continue;
+        if (isMatch(txt)) {
+            // We found the element. Now build a stable selector.
+            return buildStableSelector(node);
+        }
+    }
+    return null;
+}
+
+function buildStableSelector(element) {
+    // 1. If element has an id, use that
+    if (element.id) return `#${element.id}`;
+
+    // 2. If it has a data-testid, data-cy, etc.
+    const dataAttr = ['data-testid', 'data-cy', 'data-test', 'data-id']
+        .find(attr => element.hasAttribute(attr));
+    if (dataAttr) {
+        const value = element.getAttribute(dataAttr);
+        return `[${dataAttr}="${value}"]`;
+    }
+
+    // 3. Build a CSS selector using tag and classes
+    let selector = element.tagName.toLowerCase();
+    if (element.className && typeof element.className === 'string') {
+        const classes = element.className.trim().split(/\s+/).filter(c => c);
+        if (classes.length > 0) {
+            selector += '.' + classes.join('.');
+        }
+    }
+
+    // 4. If the selector is too generic (e.g., just 'div'), add a parent context
+    //    to make it more unique.
+    if (selector === 'div' || selector === 'span' || selector === 'p') {
+        // Try to include a parent relation
+        const parent = element.parentElement;
+        if (parent) {
+            const parentSelector = buildStableSelector(parent);
+            if (parentSelector) {
+                selector = `${parentSelector} > ${selector}`;
+            }
+        }
+    }
+
+    // 5. If still too generic, fallback to XPath using the text
+    const fullText = element.innerText.trim().substring(0, 30);
+    // Escape single quotes for XPath
+    const escapedText = fullText.replace(/'/g, "&apos;");
+    const xpath = `//*[contains(text(),'${escapedText}')]`;
+    // Return the CSS selector, but also provide the XPath as fallback.
+    // We'll return an object with both.
+    return {
+        css: selector,
+        xpath: xpath,
+        // Also return a combined selector with attribute contains for safety.
+        cssWithText: `*:contains("${fullText}")` // not standard CSS, but works with some libraries
+    };
 }
