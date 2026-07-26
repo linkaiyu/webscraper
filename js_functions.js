@@ -401,6 +401,21 @@ function identify_node(startMarker, endMarker, search_level = 3) {
 }
 
 // find the selector string based on marker text
+// usage: in devtool console:
+generate_selector_for_text('Price') (or your marker).
+
+// It returns an object: 
+{ css: '.product-price', xpath: '//*[contains(text(),"Price")]', ... }
+
+// Copy the css string (e.g., '.product-price').
+document.querySelector('.product-price')?.innerText.trim();
+
+// In your Playwright script
+const price = await page.locator('.product-price').innerText();
+// Or using the generated XPath
+const price = await page.locator('xpath=//*[contains(text(),"Price")]').innerText();
+//
+
 function generate_selector_for_text(marker, matchMode = 'exact') {
     if (typeof marker !== 'string' || marker === '') return null;
 
